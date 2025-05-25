@@ -1,20 +1,9 @@
 <?php
 session_start();
+require 'includes/db.php'; // Include DB connection
 
-$dbuser = "root";
-$dbpass = "";
-$host = "localhost";
-$db = "rentmanager";
-$mysqli = new mysqli($host, $dbuser, $dbpass, $db);
-
-// Check connection
-if ($mysqli->connect_error) {
-    die("Connection failed: " . $mysqli->connect_error);
-}
-
-// Handle login POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email']);
+    $email = strtolower(trim($_POST['email']));
     $password = $_POST['password'];
 
     $stmt = $mysqli->prepare("SELECT * FROM admins WHERE email = ?");
@@ -27,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (password_verify($password, $admin['password'])) {
             $_SESSION['admin_id'] = $admin['admin_id'];
             $_SESSION['admin_name'] = $admin['full_name'];
-            header("Location: admin/dashboard.php");
+            header("Location: dashboard.php");
             exit();
         }
     }
@@ -51,23 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       align-items: center;
       height: 100vh;
       color: #fff;
-    }
-    header {
-      background: rgba(0, 0, 0, 0.7);
-      padding: 1rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    header h1 {
-      color: gold;
-      font-size: 1.8rem;
-    }
-    nav a {
-      color: #fff;
-      margin-left: 20px;
-      text-decoration: none;
-      font-weight: bold;
     }
     .login-container {
       background-color: rgba(255, 255, 255, 0.95);
@@ -108,13 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </style>
 </head>
 <body>
-<header>
-    <h1>TenantManager</h1>
-    <nav>
-      <a href="index.php">Home</a>
-      <a href="#about"></a>
-    </nav>
-  </header>
+
   <div class="login-container">
     <h2>Admin Login</h2>
 
