@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (password_verify($password, $admin['password'])) {
             $_SESSION['admin_id'] = $admin['admin_id'];
             $_SESSION['admin_name'] = $admin['full_name'];
-            header("Location: dashboard.php");
+            header("Location: admin/dashboard.php");
             exit();
         }
     }
@@ -93,7 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="password" name="password" placeholder="Enter password" required>
       <button type="submit">Login</button>
     </form>
-  </div>
+  
+  <a href="createaccount.php" style="color: blue; text-decoration: underline;">Don't have an account? Create one</a>
+</div>
 
 </body>
 </html>

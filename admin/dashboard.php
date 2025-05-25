@@ -45,7 +45,7 @@ $pendingPayments = $mysqli->query("SELECT COUNT(*) AS total FROM balances WHERE 
             padding: 25px;
             border-radius: 15px;
             max-width: 1000px;
-            margin: auto;
+            margin-left: 220px;
         }
         h1 {
             color: gold;
@@ -71,17 +71,30 @@ $pendingPayments = $mysqli->query("SELECT COUNT(*) AS total FROM balances WHERE 
             margin-bottom: 10px;
         }
         .quick-links {
-            text-align: center;
-        }
-        .quick-links a {
-            display: inline-block;
-            margin: 10px;
-            padding: 12px 20px;
-            background: gold;
-            color: #000;
-            text-decoration: none;
-            border-radius: 8px;
-        }
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 200px;
+    background: rgba(0, 0, 0, 0.8);
+    padding-top: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 20px;
+}
+
+.quick-links a {
+    margin: 10px 0;
+    padding: 10px 20px;
+    background: gold;
+    color: #000;
+    text-decoration: none;
+    border-radius: 5px;
+    width: 160px;
+    font-weight: bold;
+}
+
         @media(max-width: 768px) {
             .stats { flex-direction: column; }
             .card { flex: 1 1 100%; }
