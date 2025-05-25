@@ -39,16 +39,16 @@ Records tenant payments, supporting both automated and manual entry, and links p
 ![Dashboard](screenshots/dashboard.jpg)
 
 ### Add Tenant Page
-![Add bills](screenshots/add bills.jpg)
+![Add bills](screenshots/addbills.jpg)
 
 ### View Payments Page
 ![View bills](screenshots/bills.jpg)
 
 ### Manual Rent Payment Form
-![Month report](screenshots/month report.jpg)
+![Month report](screenshots/monthreport.jpg)
 
 ### M-Pesa Payment Auto-update Notification
-![Tenant list](screenshots/tenant list.jpg)
+![Tenant list](screenshots/tenantlist.jpg)
 
 ---
 
