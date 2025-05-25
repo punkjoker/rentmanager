@@ -4,31 +4,32 @@ This Rent Payment Management System allows property managers to track tenants, h
 
 ## Features
 
-- Tenants registration and management
-- Monthly rent and utility charge tracking
+- Tenant registration and management
+- Monthly rent and utility charge tracking (water, electricity, garbage)
 - Payment history with M-Pesa transaction linking
 - Manual rent payment option with selectable tenant and house number
-- Easy to navigate admin interface
+- Monthly report overview
+- Responsive admin dashboard
 
 ## Technologies Used
 
 - PHP
 - MySQL (Database)
 - HTML/CSS (Frontend)
-- M-Pesa Integration (Simulated/API-ready)
+- M-Pesa Integration (Simulated or via API)
 
 ---
 
-## Database Tables
+## Database Structure
 
-### 1. `tenants`
-Holds tenant details such as name, contact, house number, and account status.
+### `tenants`
+Stores tenant information including full name, national ID, contact details, house number, and status.
 
-### 2. `rent_charges`
-Tracks rent, water, electricity, garbage fees, and payment status monthly.
+### `rent_charges`
+Tracks monthly rent and associated utility bills, along with total due and payment status.
 
-### 3. `payments`
-Stores records of all payments made by tenants, including M-Pesa and manual methods.
+### `payments`
+Records tenant payments, supporting both automated and manual entry, and links payments to tenants and transactions.
 
 ---
 
@@ -49,21 +50,19 @@ Stores records of all payments made by tenants, including M-Pesa and manual meth
 ### M-Pesa Payment Auto-update Notification
 ![Tenant list](screenshots/tenant list.jpg)
 
-### Monthly Rent Charges Overview
-![add tenant payment](screenshots/add tenant payment.jpg)
-
 ---
 
 ## Setup Instructions
 
 1. Clone or download this repository.
-2. Import the SQL tables into your MySQL database.
-3. Configure your database connection in `db.php`.
-4. Ensure the `screenshots/` folder contains the relevant UI previews.
-5. Run `viewpayments.php` on your local or hosted server (e.g., XAMPP).
+2. Import the database SQL file into your MySQL database.
+3. Configure database connection in your `db.php` file.
+4. Place your project in `htdocs` if using XAMPP.
+5. Ensure the `screenshots/` folder contains the named images for reference.
+6. Access the system via `http://localhost/your-project-folder/`.
 
 ---
 
 ## License
 
-Dm for database and business
+This project is open-source and free to use for educational or personal rental management purposes.
