@@ -101,6 +101,18 @@ $pendingPayments = $mysqli->query("SELECT COUNT(*) AS total FROM balances WHERE 
             .card { flex: 1 1 100%; }
         }
     </style>
+    <?php
+// Get monthly income for the current year
+$monthlyIncome = [];
+for ($i = 1; $i <= 12; $i++) {
+    $stmt = $mysqli->prepare("SELECT SUM(amount_paid) AS total FROM payments WHERE MONTH(payment_date) = ? AND YEAR(payment_date) = YEAR(CURDATE())");
+    $stmt->bind_param("i", $i);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    $monthlyIncome[] = $result['total'] ?? 0;
+}
+?>
+
 </head>
 <body>
     <div class="container">
@@ -120,6 +132,26 @@ $pendingPayments = $mysqli->query("SELECT COUNT(*) AS total FROM balances WHERE 
                     <p><?php echo $pendingPayments; ?></p>
                 </div>
             </div>
+            <div style="margin-top: 40px;">
+    <h2 style="color: gold; text-align:center;">Monthly Income Analytics</h2>
+    <div style="text-align:center; margin-bottom: 20px;">
+        <label for="monthSelect" style="color:#fff;">Generate Report for: </label>
+        <select id="monthSelect" onchange="generateMonthlyReport()">
+            <?php
+            $months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            foreach ($months as $index => $month) {
+                $selected = ($index + 1 == date('n')) ? 'selected' : '';
+                echo "<option value='".($index + 1)."' $selected>$month</option>";
+            }
+            ?>
+        </select>
+    </div>
+    <canvas id="incomeChart" height="100"></canvas>
+</div>
+
 
             <div class="quick-links">
                 <a href="add_tenant.php">Add Tenant</a>
@@ -131,5 +163,51 @@ $pendingPayments = $mysqli->query("SELECT COUNT(*) AS total FROM balances WHERE 
             </div>
         </div>
     </div>
+    <!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const monthlyData = <?php echo json_encode($monthlyIncome); ?>;
+    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const ctx = document.getElementById('incomeChart').getContext('2d');
+    const incomeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: monthLabels,
+            datasets: [{
+                label: 'KES Collected',
+                data: monthlyData,
+                backgroundColor: 'gold',
+                borderColor: '#444',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: 'white' },
+                    title: {
+                        display: true,
+                        text: 'KES',
+                        color: 'white'
+                    }
+                },
+                x: {
+                    ticks: { color: 'white' }
+                }
+            }
+        }
+    });
+
+    function generateMonthlyReport() {
+        const selectedMonth = document.getElementById("monthSelect").value;
+        window.location.href = `monthly_report.php?month=${selectedMonth}`;
+    }
+</script>
+
 </body>
 </html>

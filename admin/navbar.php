@@ -32,6 +32,6 @@
     <a href="tenants.php">Tenants List</a>
     <a href="monthly_report.php">Monthly Report</a>
     <a href="add_charges.php">Add Rent & Bills</a>
-    <a href="view_payments.php">Latest Payments</a>
+    <a href="view_payments.php">Payments</a>
     <a href="logout.php">Logout</a>
 </div>
