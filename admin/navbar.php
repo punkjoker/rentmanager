@@ -29,6 +29,7 @@
 <div class="quick-links">
     <a href="dashboard.php">Dashboard</a>
     <a href="add_tenant.php">Add Tenant</a>
+    <a href="tenants.php">Tenants List</a>
     <a href="monthly_report.php">Monthly Report</a>
     <a href="add_charges.php">Add Rent & Bills</a>
     <a href="view_payments.php">Latest Payments</a>

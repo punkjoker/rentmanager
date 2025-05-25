@@ -18,12 +18,14 @@ $result = $mysqli->query("SELECT * FROM tenants ORDER BY house_number ASC");
     <title>Add & View Tenants</title>
     <style>
     body {
-        font-family: Arial, sans-serif;
-        background-color: #2e2e2e;
-        color: #fff;
-        margin: 0;
-        padding: 20px;
-    }
+    font-family: Arial, sans-serif;
+    background-image: url('images/tenant2.jpg'); /* Updated image path */
+    background-size: cover;
+    background-repeat: no-repeat;
+    color: #fff;
+    backdrop-filter: brightness(0.3);
+}
+
 
     h2 {
         color: #d4af37;
@@ -132,7 +134,10 @@ $result = $mysqli->query("SELECT * FROM tenants ORDER BY house_number ASC");
                     <td><?= htmlspecialchars($row['house_number']) ?></td>
                     <td><?= htmlspecialchars($row['phone_number']) ?></td>
                     <td><?= htmlspecialchars($row['email']) ?></td>
-                    <td><a href="edit_tenant.php?id=<?= $row['id'] ?>" class="edit-btn">Edit</a></td>
+                    <td>
+  <a href="edit_tenant.php?id=<?= htmlspecialchars($row['tenant_id']) ?>" class="edit-btn">Edit</a>
+</td>
+
                 </tr>
                 <?php endwhile; ?>
             </table>

@@ -15,14 +15,41 @@ $result = $mysqli->query("
 <head>
     <title>Latest Payments</title>
     <style>
-        body { font-family: Arial; padding: 20px; background: #f4f6f9; }
-        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 20px; }
+        body {
+    font-family: Arial, sans-serif;
+    background-image: url('images/tenant2.jpg'); /* Updated image path */
+    background-size: cover;
+    background-repeat: no-repeat;
+    color: #fff;
+    backdrop-filter: brightness(0.3);
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    margin: 20px auto; /* Center horizontally */
+    color: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.container {
+    max-width: 1000px;
+    margin-left: 220px;;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+}
+
         th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
         th { background: #17a2b8; color: white; }
         h2 { text-align: center; }
+    
     </style>
 </head>
 <body>
+<div class="container">
+<?php include 'navbar.php'; ?>
+
     <h2>Latest Payments</h2>
     <table>
         <tr><th>Date</th><th>Tenant</th><th>Amount</th><th>Method</th><th>Transaction</th></tr>
@@ -36,5 +63,6 @@ $result = $mysqli->query("
         </tr>
         <?php } ?>
     </table>
+    </div>
 </body>
 </html>

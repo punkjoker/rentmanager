@@ -83,10 +83,12 @@ $pendingPayments = $conn->query("SELECT COUNT(*) AS total FROM balances WHERE st
         <div class="dashboard">
             <h1>Welcome, <?php echo $_SESSION['admin_name']; ?></h1>
             <div class="stats">
-                <div class="card">
-                    <h3>Total Tenants</h3>
-                    <p><?php echo $totalTenants; ?></p>
-                </div>
+            <a href="tenants.php" style="text-decoration: none; color: inherit;">
+    <div class="card" style="cursor: pointer;">
+        <h3>Total Tenants</h3>
+        <p><?php echo $totalTenants; ?></p>
+    </div>
+</a>
                 <div class="card">
                     <h3>Rent Collected (This Month)</h3>
                     <p>KES <?php echo number_format($rentCollected ?? 0); ?></p>

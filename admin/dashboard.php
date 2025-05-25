@@ -30,13 +30,14 @@ $pendingPayments = $mysqli->query("SELECT COUNT(*) AS total FROM balances WHERE 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: Arial, sans-serif;
-            background-image: url('images/tenants1.jpg');
-            background-size: cover;
-            background-repeat: no-repeat;
-            color: #fff;
-            backdrop-filter: brightness(0.3);
-        }
+    font-family: Arial, sans-serif;
+    background-image: url('images/tenant2.jpg'); /* Updated image path */
+    background-size: cover;
+    background-repeat: no-repeat;
+    color: #fff;
+    backdrop-filter: brightness(0.3);
+}
+
         .container {
             padding: 30px;
         }
@@ -122,6 +123,7 @@ $pendingPayments = $mysqli->query("SELECT COUNT(*) AS total FROM balances WHERE 
 
             <div class="quick-links">
                 <a href="add_tenant.php">Add Tenant</a>
+                <a href="tenants.php">Tenants List</a>
                 <a href="monthly_report.php">Monthly Report</a>
                 <a href="add_charges.php">Add Rent & Bills</a>
                 <a href="view_payments.php">Latest Payments</a>

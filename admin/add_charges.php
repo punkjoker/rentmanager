@@ -37,13 +37,13 @@ $charges_result = $mysqli->query($charges_sql);
     <title>Add Rent & Bills</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #1a1a1a;
-            color: gold;
-            margin: 0;
-            padding-left: 220px; /* leave space for navbar */
-        }
+    font-family: Arial, sans-serif;
+    background-image: url('images/tenant2.jpg'); /* Updated image path */
+    background-size: cover;
+    background-repeat: no-repeat;
+    color: #fff;
+    backdrop-filter: brightness(0.3);
+}
         h2 {
             text-align: center;
             margin-bottom: 20px;
