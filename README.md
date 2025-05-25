@@ -38,19 +38,19 @@ Stores records of all payments made by tenants, including M-Pesa and manual meth
 ![Dashboard](screenshots/dashboard.jpg)
 
 ### Add Tenant Page
-![Add bills](screenshots/add bills.jpg)
+![Add bills](screenshots/addbills.jpg)
 
 ### View Payments Page
 ![View bills](screenshots/bills.jpg)
 
 ### Manual Rent Payment Form
-![Month report](screenshots/month report.jpg)
+![Month report](screenshots/monthreport.jpg)
 
 ### M-Pesa Payment Auto-update Notification
-![Tenant list](screenshots/tenant list.jpg)
+![Tenant list](screenshots/tenantlist.jpg)
 
 ### Monthly Rent Charges Overview
-![add tenant payment](screenshots/add tenant payment.jpg)
+![add tenant payment](screenshots/addtenantpayment.jpg)
 
 ---
 
