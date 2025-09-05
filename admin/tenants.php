@@ -6,7 +6,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 $mysqli = new mysqli("localhost", "root", "", "rentmanager");
 
-$result = $mysqli->query("SELECT * FROM tenants ORDER BY house_number ASC");
+$result = $mysqli->query("SELECT * FROM tenants WHERE status='active' ORDER BY house_number ASC");
 ?>
 
 <!DOCTYPE html>
@@ -107,10 +107,14 @@ $result = $mysqli->query("SELECT * FROM tenants ORDER BY house_number ASC");
                     <td><?= htmlspecialchars($row['phone_number']) ?></td>
                     <td><?= htmlspecialchars($row['email']) ?></td>
                     <td><?= htmlspecialchars($row['house_number']) ?></td>
-                    <td>
-                        <a href="edit_tenant.php?id=<?= htmlspecialchars($row['tenant_id']) ?>" class="edit-btn">Edit</a>
-                    </td>
-                </tr>
+                   <td>
+    <a href="edit_tenant.php?id=<?= htmlspecialchars($row['tenant_id']) ?>" class="edit-btn">Edit</a>
+    <a href="vacate_tenant.php?id=<?= $row['tenant_id'] ?>" class="edit-btn" 
+       onclick="return confirm('Are you sure you want to vacate this tenant?');">
+       Vacate
+    </a>
+</td>
+
                 <?php endwhile; ?>
             </table>
 

@@ -2,14 +2,24 @@
 $mysqli = new mysqli("localhost", "root", "", "rentmanager");
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $stmt = $mysqli->prepare("INSERT INTO tenants (full_name, national_id, phone_number, email, house_number) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssss", $_POST['full_name'], $_POST['national_id'], $_POST['phone_number'], $_POST['email'], $_POST['house_number']);
+    $stmt = $mysqli->prepare("INSERT INTO tenants (full_name, national_id, phone_number, email, house_number, deposit) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param(
+        "sssssd", 
+        $_POST['full_name'], 
+        $_POST['national_id'], 
+        $_POST['phone_number'], 
+        $_POST['email'], 
+        $_POST['house_number'], 
+        $_POST['deposit']
+    );
     $stmt->execute();
     echo "<div class='success'>Tenant added successfully.</div>";
 }
 
+
 // Fetch existing tenants
-$result = $mysqli->query("SELECT * FROM tenants ORDER BY house_number ASC");
+$result = $mysqli->query("SELECT * FROM tenants WHERE status='active' ORDER BY house_number ASC");
+
 ?>
 
 <!DOCTYPE html>
@@ -114,6 +124,7 @@ $result = $mysqli->query("SELECT * FROM tenants ORDER BY house_number ASC");
                 <input type="text" name="phone_number" placeholder="Phone Number" required>
                 <input type="email" name="email" placeholder="Email">
                 <input type="text" name="house_number" placeholder="House Number" required>
+                <input type="text" name="deposit" placeholder="Deposit Amount" required>
                 <input type="submit" value="Add Tenant">
             </form>
         </div>
@@ -126,6 +137,7 @@ $result = $mysqli->query("SELECT * FROM tenants ORDER BY house_number ASC");
                     <th>House No</th>
                     <th>Phone</th>
                     <th>Email</th>
+                    <th>Deposit</th>
                     <th>Edit</th>
                 </tr>
                 <?php while ($row = $result->fetch_assoc()): ?>
@@ -134,6 +146,7 @@ $result = $mysqli->query("SELECT * FROM tenants ORDER BY house_number ASC");
                     <td><?= htmlspecialchars($row['house_number']) ?></td>
                     <td><?= htmlspecialchars($row['phone_number']) ?></td>
                     <td><?= htmlspecialchars($row['email']) ?></td>
+                    <td><?= number_format((float)$row['deposit'], 2) ?></td>
                     <td>
   <a href="edit_tenant.php?id=<?= htmlspecialchars($row['tenant_id']) ?>" class="edit-btn">Edit</a>
 </td>

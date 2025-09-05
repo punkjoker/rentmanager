@@ -13,23 +13,25 @@ if (isset($_GET['id'])) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update'])) {
-    $stmt = $mysqli->prepare("UPDATE tenants SET full_name=?, national_id=?, phone_number=?, email=?, house_number=? WHERE tenant_id=?");
-    $stmt->bind_param(
-        "sssssi",
-        $_POST['full_name'],
-        $_POST['national_id'],
-        $_POST['phone_number'],
-        $_POST['email'],
-        $_POST['house_number'],
-        $_POST['tenant_id']
-    );
+    $stmt = $mysqli->prepare("UPDATE tenants SET full_name=?, national_id=?, phone_number=?, email=?, house_number=?, deposit=? WHERE tenant_id=?");
+   $stmt->bind_param(
+    "ssssddi",
+    $_POST['full_name'],
+    $_POST['national_id'],
+    $_POST['phone_number'],
+    $_POST['email'],
+    $_POST['house_number'],
+    $_POST['deposit'],
+    $_POST['id']
+);
+
     $stmt->execute();
     $stmt->close();
 
-    // Redirect back to main page
     header("Location: tenants.php");
     exit();
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -100,6 +102,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update'])) {
             <input type="text" name="phone_number" value="<?= htmlspecialchars($tenant['phone_number']) ?>" required>
             <input type="email" name="email" value="<?= htmlspecialchars($tenant['email']) ?>">
             <input type="text" name="house_number" value="<?= htmlspecialchars($tenant['house_number']) ?>" required>
+            <input type="number" step="50" name="deposit" value="<?= htmlspecialchars($tenant['deposit'] ?? 0) ?>" placeholder="Deposit Amount" required>
             <input type="submit" name="update" value="Update Tenant">
         </form>
         <a href="add_tenant.php" class="back-btn">← Back to Tenant List</a>

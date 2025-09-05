@@ -1,186 +1,204 @@
 <?php
 $mysqli = new mysqli("localhost", "root", "", "rentmanager");
+if ($mysqli->connect_error) {
+    die("DB connection failed: " . $mysqli->connect_error);
+}
+$mysqli->set_charset('utf8mb4');
 
-// Default filter
-$from = $_GET['from'] ?? date('Y-m-01');
-$to = $_GET['to'] ?? date('Y-m-t');
+// Inputs & defaults
+$from   = $_GET['from']  ?? date('Y-m-01');
+$to     = $_GET['to']    ?? date('Y-m-t');
 $filter = $_GET['filter'] ?? 'due';
-$page = $_GET['page'] ?? 1;
-$limit = 10;
+$page   = max(1, (int)($_GET['page'] ?? 1));
+$limit  = 10;
 $offset = ($page - 1) * $limit;
 
-// Main Query
-$query = "
-    SELECT t.tenant_id, t.full_name, 
-           COALESCE(SUM(r.total_due), 0) as total_due,
-           COALESCE(SUM(p.amount_paid), 0) as amount_paid,
-           COALESCE(SUM(r.total_due - p.amount_paid), 0) as balance
-    FROM tenants t
-    LEFT JOIN rent_charges r ON t.tenant_id = r.tenant_id AND r.month_year BETWEEN '$from' AND '$to'
-    LEFT JOIN (
-        SELECT tenant_id, SUM(amount_paid) AS amount_paid, payment_date
-        FROM payments
-        WHERE payment_date BETWEEN '$from' AND '$to'
-        GROUP BY tenant_id
-    ) p ON t.tenant_id = p.tenant_id
-    GROUP BY t.tenant_id, t.full_name
-    LIMIT $limit OFFSET $offset
-";
+// Fetch tenants for the page
+$tenants = $mysqli->query("SELECT tenant_id, full_name, house_number FROM tenants ORDER BY full_name ASC LIMIT $limit OFFSET $offset");
 
-$result = $mysqli->query($query);
+// Prepare array for per-tenant data
+$tenantData = [];
 
-// For total calculations
-$totalsQuery = "
+while ($tenant = $tenants->fetch_assoc()) {
+    $tenant_id = $tenant['tenant_id'];
+
+    // Fetch rent charges for this tenant
+    $month = date('Y-m', strtotime($from)); // current month
+$rentCharges = $mysqli->query("
+    SELECT month_year, total_due 
+    FROM rent_charges 
+    WHERE tenant_id = $tenant_id AND month_year = '$month'
+");
+
+
+    // Fetch payment history for this tenant
+   $payments = $mysqli->query("
+    SELECT amount_paid, payment_date 
+    FROM payments 
+    WHERE tenant_id = $tenant_id AND DATE_FORMAT(payment_date, '%Y-%m') = '$month'
+");
+
+    // Get total due and total paid
+   // Get total due and total paid
+$summary = $mysqli->query("
     SELECT 
-        SUM(r.total_due) AS total_due, 
-        SUM(p.amount_paid) AS amount_paid 
-    FROM tenants t
-    LEFT JOIN rent_charges r ON t.tenant_id = r.tenant_id AND r.month_year BETWEEN '$from' AND '$to'
-    LEFT JOIN (
-        SELECT tenant_id, SUM(amount_paid) AS amount_paid 
-        FROM payments 
-        WHERE payment_date BETWEEN '$from' AND '$to' 
-        GROUP BY tenant_id
-    ) p ON t.tenant_id = p.tenant_id
-";
-$totals = $mysqli->query($totalsQuery)->fetch_assoc();
-$total_due = $totals['total_due'] ?? 0;
-$total_paid = $totals['amount_paid'] ?? 0;
+        (SELECT SUM(total_due) FROM rent_charges WHERE tenant_id = $tenant_id AND month_year = '$month') AS total_due,
+        (SELECT SUM(amount_paid) FROM payments WHERE tenant_id = $tenant_id AND DATE_FORMAT(payment_date, '%Y-%m') = '$month') AS total_paid
+")->fetch_assoc();
+
+
+$total_due = $summary['total_due'] ?? 0;
+$total_paid = $summary['total_paid'] ?? 0;
+$balance = $total_due - $total_paid;
+
+    $tenantData[] = [
+        'tenant_id'   => $tenant_id,
+        'full_name'   => $tenant['full_name'],
+        'house_number'    => $tenant['house_number'],
+        'total_due'   => $total_due,
+        'total_paid'  => $total_paid,
+        'balance'     => $balance,
+        'rentCharges' => $rentCharges,
+        'payments'    => $payments
+    ];
+}
+if (isset($_GET['download_pdf'])) {
+    require('fpdf.php');
+
+    $pdf = new FPDF();
+    $pdf->AddPage();
+
+    // Title
+    $pdf->SetFont('Arial','B',16);
+    $pdf->SetTextColor(0,0,128); // Dark blue title
+    $pdf->Cell(0,10,'Monthly Rent Report ('.date('M Y', strtotime($from)).')',0,1,'C');
+    $pdf->Ln(5);
+
+    // Table Header
+    $pdf->SetFont('Arial','B',12);
+    $pdf->SetFillColor(255,215,0); // Gold background
+    $pdf->SetTextColor(0,0,0);      // Black text
+    $pdf->Cell(50,10,'Tenant Name',1,0,'C',true);
+    $pdf->Cell(30,10,'House No',1,0,'C',true);
+    $pdf->Cell(40,10,'Amount Due',1,0,'C',true);
+    $pdf->Cell(40,10,'Paid',1,0,'C',true);
+    $pdf->Cell(30,10,'Balance',1,1,'C',true); // smaller to fit
+
+    // Set font and alternating row color
+    $pdf->SetFont('Arial','',12);
+    $fill = false; // for alternating row color
+
+    foreach ($tenantData as $tenant) {
+        $tenant_id = $tenant['tenant_id'];
+
+        $total_due = $tenant['total_due'];
+        $total_paid = $tenant['total_paid'];
+        $balance = $tenant['balance'];
+
+        $pdf->SetFillColor(230, 230, 250); // Light lavender for alternating row
+        $pdf->SetTextColor(0,0,0); // Black text
+
+        $pdf->Cell(50,10,$tenant['full_name'],1,0,'L',$fill);
+        $pdf->Cell(30,10,$tenant['house_number'],1,0,'C',$fill);
+        $pdf->Cell(40,10,number_format($total_due,2),1,0,'R',$fill);
+        $pdf->Cell(40,10,number_format($total_paid,2),1,0,'R',$fill);
+        $pdf->Cell(30,10,number_format($balance,2),1,1,'R',$fill);
+
+        $fill = !$fill; // toggle fill color
+    }
+
+    $pdf->Output('D', 'monthly_report_'.date('Y_m', strtotime($from)).'.pdf');
+    exit();
+}
+
 ?>
+
+
 <!DOCTYPE html>
 <html>
 <head>
     <title>Monthly Report</title>
     <style>
-        body {
-    font-family: Arial, sans-serif;
-    background-image: url('images/tenant2.jpg'); /* Updated image path */
-    background-size: cover;
-    background-repeat: no-repeat;
-    color: #fff;
-    backdrop-filter: brightness(0.3);
-}
-
-        .container {
-            max-width: 1200px;
-            margin-left: 220px;
-            background: #222;
-            padding: 20px;
-            border-radius: 10px;
-        }
-        h2 {
-            text-align: center;
-            color: gold;
-        }
-        form {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
-        form input, form select {
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            background: #333;
-            color: white;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #333;
-        }
-        th, td {
-            padding: 12px;
-            border: 1px solid #555;
-            text-align: center;
-        }
-        th {
-            background: gold;
-            color: #000;
-        }
-        .summary {
-            text-align: right;
-            font-weight: bold;
-            margin-top: 20px;
-            color: gold;
-        }
-        .pagination {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .pagination a {
-            color: gold;
-            margin: 0 5px;
-            text-decoration: none;
-        }
-        .btn-history {
-            background: gold;
-            color: black;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button.btn-history {
-    margin-top: 5px;
-    background: gold;
-    color: black;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-}
+        body { font-family: Arial, sans-serif; background-image: url('images/tenant2.jpg'); background-size: cover; background-repeat: no-repeat; color: #fff; backdrop-filter: brightness(0.3); }
+        .container { max-width: 1200px; margin-left: 220px; background: #222; padding: 20px; border-radius: 10px; }
+        h2 { text-align: center; color: gold; }
+        form { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        form input, form select { padding: 10px; border: none; border-radius: 5px; background: #333; color: white; }
+        table { width: 100%; border-collapse: collapse; background: #333; }
+        th, td { padding: 12px; border: 1px solid #555; text-align: center; }
+        th { background: gold; color: #000; }
+        .pagination { text-align: center; margin-top: 20px; }
+        .pagination a { color: gold; margin: 0 5px; text-decoration: none; }
+        .btn-history { background: gold; color: black; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
 <?php include 'navbar.php'; ?>
 <div class="container">
-<form method="post" action="export_excel.php" style="text-align: right; margin-bottom: 15px;">
-    <input type="hidden" name="from" value="<?= $from ?>">
-    <input type="hidden" name="to" value="<?= $to ?>">
-    <input type="hidden" name="filter" value="<?= $filter ?>">
-    <button type="submit" class="btn-history">Download report</button>
+
+<h2>Monthly Report</h2>
+
+<form method="get" style="text-align:center; margin-bottom:15px;">
+    <input type="date" name="from" value="<?= htmlspecialchars($from) ?>" required>
+    <input type="date" name="to" value="<?= htmlspecialchars($to) ?>" required>
+    <select name="filter">
+        <option value="due"  <?= $filter === 'due'  ? 'selected' : '' ?>>Total Due</option>
+        <option value="paid" <?= $filter === 'paid' ? 'selected' : '' ?>>Total Paid</option>
+    </select>
+    <input type="submit" value="Filter">
+    <!-- Download PDF button inside the form -->
+    <button type="submit" name="download_pdf" class="btn-history">Download PDF</button>
 </form>
-    <h2>Monthly Report</h2>
-    <form method="get">
-        <input type="date" name="from" value="<?= $from ?>" required>
-        <input type="date" name="to" value="<?= $to ?>" required>
-        <select name="filter">
-            <option value="due" <?= $filter == 'due' ? 'selected' : '' ?>>Total Due</option>
-            <option value="paid" <?= $filter == 'paid' ? 'selected' : '' ?>>Total Paid</option>
-        </select>
-        <input type="submit" value="Filter">
-    </form>
+<table>
+    <tr>
+        <th>Tenant</th>
+        <th>House No</th>
+        <th>Total Due</th>
+        <th>Paid</th>
+        <th>Balance</th>
+        <th>Actions</th>
+    </tr>
+   <?php foreach ($tenantData as $row) { ?>
+<tr>
+    <td><?= htmlspecialchars($row['full_name']) ?></td>
+    <td><?= htmlspecialchars($row['house_number']) ?></td>
 
-    <table>
-        <tr>
-            <th>Tenant</th>
-            <th>Total Due</th>
-            <th>Paid</th>
-            <th>Balance</th>
-            <th>Actions</th>
-        </tr>
-        <?php while ($row = $result->fetch_assoc()) { ?>
-        <tr>
-            <td><?= $row['full_name'] ?></td>
-            <td><?= number_format($row['total_due'], 2) ?></td>
-            <td><?= number_format($row['amount_paid'], 2) ?></td>
-            <td><?= number_format($row['balance'], 2) ?></td>
-            <td><a href="client_history.php?tenant_id=<?= $row['tenant_id'] ?>" class="btn-history">View History</a></td>
-        </tr>
-        <?php } ?>
-    </table>
+    <!-- Total Due column: list monthly charges without dates -->
+    <td>
+        <?php
+        if ($row['rentCharges']) {
+            while ($charge = $row['rentCharges']->fetch_assoc()) {
+                echo number_format((float)$charge['total_due'], 2) . "<br>";
+            }
+        }
+        ?>
+    </td>
 
-    <div class="summary">
-        <?= $filter == 'due' ? "Total Due: " . number_format($total_due, 2) : "Total Paid: " . number_format($total_paid, 2) ?>
-    </div>
+    <!-- Paid column: list payments without dates -->
+    <td>
+        <?php
+        if ($row['payments']) {
+            while ($payment = $row['payments']->fetch_assoc()) {
+                echo number_format((float)$payment['amount_paid'], 2) . "<br>";
+            }
+        }
+        ?>
+    </td>
 
-    <div class="pagination">
-        <a href="?from=<?= $from ?>&to=<?= $to ?>&filter=<?= $filter ?>&page=<?= max(1, $page - 1) ?>">&laquo; Prev</a>
-        <a href="?from=<?= $from ?>&to=<?= $to ?>&filter=<?= $filter ?>&page=<?= $page + 1 ?>">Next &raquo;</a>
-    </div>
+    <!-- Balance -->
+    <td><?= number_format((float)$row['balance'], 2) ?></td>
+
+    <!-- Actions -->
+    <td><a href="client_history.php?tenant_id=<?= (int)$row['tenant_id'] ?>" class="btn-history">View History</a></td>
+</tr>
+<?php } ?>
+
+
+<div class="pagination">
+    <a href="?from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>&filter=<?= urlencode($filter) ?>&page=<?= max(1, $page - 1) ?>">&laquo; Prev</a>
+    <a href="?from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>&filter=<?= urlencode($filter) ?>&page=<?= $page + 1 ?>">Next &raquo;</a>
+</div>
+
 </div>
 </body>
 </html>

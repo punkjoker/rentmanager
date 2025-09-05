@@ -18,7 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 // Get tenants for dropdown
-$tenants_result = $mysqli->query("SELECT tenant_id, full_name FROM tenants ORDER BY full_name");
+$tenants_result = $mysqli->query("SELECT tenant_id, full_name, house_number FROM tenants ORDER BY full_name");
 
 // Get charges for current month
 $current_month = date('Y-m');
@@ -125,7 +125,7 @@ $charges_result = $mysqli->query($charges_sql);
         <option value="" disabled selected>Select Tenant</option>
         <?php while ($tenant = $tenants_result->fetch_assoc()): ?>
             <option value="<?php echo $tenant['tenant_id']; ?>">
-                <?php echo htmlspecialchars($tenant['full_name']); ?>
+                <?php echo htmlspecialchars($tenant['full_name'] . " - House " . $tenant['house_number']); ?>
             </option>
         <?php endwhile; ?>
     </select>
@@ -139,7 +139,7 @@ $charges_result = $mysqli->query($charges_sql);
     <label for="water">Water Bill</label>
     <input type="number" step="10" id="water" name="water" placeholder="Water Bill" value="0">
 
-    <label for="electricity">Electricity Bill</label>
+    <label for="electricity">Other charges</label>
     <input type="number" step="50" id="electricity" name="electricity" placeholder="Electricity Bill" value="0">
 
     <label for="garbage">Garbage Bill</label>
