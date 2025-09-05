@@ -14,7 +14,7 @@ $limit  = 10;
 $offset = ($page - 1) * $limit;
 
 // Fetch tenants for the page
-$tenants = $mysqli->query("SELECT tenant_id, full_name, house_number FROM tenants ORDER BY full_name ASC LIMIT $limit OFFSET $offset");
+$tenants = $mysqli->query("SELECT tenant_id, full_name, house_number FROM tenants WHERE status='active' ORDER BY full_name ASC LIMIT $limit OFFSET $offset");
 
 // Prepare array for per-tenant data
 $tenantData = [];

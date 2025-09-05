@@ -100,7 +100,7 @@
   </section>
 
   <footer>
-    &copy; <?php echo date("Y"); ?> TenantManager System. Built with ❤️ in Kenya.
+    &copy; <?php echo date("Y"); ?> TenantManager System. All rights reserved.DAVID KYALO
   </footer>
 
 </body>

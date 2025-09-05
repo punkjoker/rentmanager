@@ -17,7 +17,7 @@ if ($mysqli->connect_error) {
 }
 
 // Sample queries using $mysqli
-$totalTenants = $mysqli->query("SELECT COUNT(*) AS total FROM tenants")->fetch_assoc()['total'];
+$totalTenants = $mysqli->query("SELECT COUNT(*) AS total FROM tenants WHERE status='active'")->fetch_assoc()['total'];
 $rentCollected = $mysqli->query("SELECT SUM(amount_paid) AS total FROM payments WHERE MONTH(payment_date) = MONTH(CURDATE())")->fetch_assoc()['total'];
 $pendingPayments = $mysqli->query("SELECT COUNT(*) AS total FROM balances WHERE status != 'paid'")->fetch_assoc()['total'];
 
