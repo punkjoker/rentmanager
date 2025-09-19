@@ -8,25 +8,53 @@ if ($mysqli->connect_error) {
 $success = false;
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $total = $_POST['base_rent'] + $_POST['water'] + $_POST['electricity'] + $_POST['garbage'];
-    $stmt = $mysqli->prepare("INSERT INTO rent_charges (tenant_id, month_year, base_rent, water_bill, electricity_bill, garbage_bill, total_due) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("issdddd", $_POST['tenant_id'], $_POST['month_year'], $_POST['base_rent'], $_POST['water'], $_POST['electricity'], $_POST['garbage'], $total);
+    // Cast values to integers
+    $tenant_id   = (int)$_POST['tenant_id'];
+    $month_year  = $_POST['month_year'];
+    $base_rent   = (int)$_POST['base_rent'];
+    $water       = (int)$_POST['water'];
+    $electricity = (int)$_POST['electricity'];
+    $garbage     = (int)$_POST['garbage'];
+    $total       = $base_rent + $water + $electricity + $garbage;
+
+    $stmt = $mysqli->prepare("INSERT INTO rent_charges 
+        (tenant_id, month_year, base_rent, water_bill, electricity_bill, garbage_bill, total_due) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)");
+
+    // Bind the variables by reference (no casts here)
+    $stmt->bind_param("isiiiii",
+        $tenant_id,
+        $month_year,
+        $base_rent,
+        $water,
+        $electricity,
+        $garbage,
+        $total);
+
     if ($stmt->execute()) {
         $success = true;
     }
     $stmt->close();
 }
 
+
 // Get tenants for dropdown
-$tenants_result = $mysqli->query("SELECT tenant_id, full_name, house_number FROM tenants ORDER BY full_name");
+$tenants_result = $mysqli->query("
+    SELECT tenant_id, full_name, house_number
+    FROM tenants
+    WHERE status='active'
+    ORDER BY CAST(SUBSTRING(house_number, 4) AS UNSIGNED) ASC
+");
+
 
 // Get charges for current month
 $current_month = date('Y-m');
-$charges_sql = "SELECT rc.*, t.full_name, t.phone_number, t.email 
+$charges_sql = "SELECT rc.*, t.full_name, t.phone_number, t.email, t.house_number 
                 FROM rent_charges rc 
                 JOIN tenants t ON rc.tenant_id = t.tenant_id 
                 WHERE rc.month_year = '$current_month'
-                ORDER BY t.full_name";
+                ORDER BY CAST(SUBSTRING(t.house_number,4) AS UNSIGNED) ASC";
+
 $charges_result = $mysqli->query($charges_sql);
 
 ?>
@@ -134,16 +162,16 @@ $charges_result = $mysqli->query($charges_sql);
     <input type="month" id="month_year" name="month_year" value="<?php echo date('Y-m'); ?>" required>
 
     <label for="base_rent">Base Rent</label>
-    <input type="number" step="100" id="base_rent" name="base_rent" placeholder="Base Rent" required>
+    <input type="number" id="base_rent" name="base_rent" placeholder="Base Rent" required>
 
     <label for="water">Water Bill</label>
-    <input type="number" step="10" id="water" name="water" placeholder="Water Bill" value="0">
+    <input type="number" id="water" name="water" placeholder="Water Bill" value="0">
 
     <label for="electricity">Other charges</label>
-    <input type="number" step="50" id="electricity" name="electricity" placeholder="Electricity Bill" value="0">
+    <input type="number" id="electricity" name="electricity" placeholder="Electricity Bill" value="0">
 
     <label for="garbage">Garbage Bill</label>
-    <input type="number" step="50" id="garbage" name="garbage" placeholder="Garbage Bill" value="0">
+    <input type="number" id="garbage" name="garbage" placeholder="Garbage Bill" value="0">
 
     <input type="submit" value="Add Charges">
 </form>
@@ -153,6 +181,7 @@ $charges_result = $mysqli->query($charges_sql);
 <table>
     <thead>
         <tr>
+            <th>#</th>
             <th>Tenant Name</th>
             <th>Phone</th>
             <th>Email</th>

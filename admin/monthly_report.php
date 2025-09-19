@@ -13,8 +13,40 @@ $page   = max(1, (int)($_GET['page'] ?? 1));
 $limit  = 10;
 $offset = ($page - 1) * $limit;
 
+// Fetch distinct house numbers for filter dropdown
+$houses = $mysqli->query("SELECT DISTINCT house_number FROM tenants WHERE status='active' ORDER BY CAST(SUBSTRING(house_number,4) AS UNSIGNED)");
+$selected_house = $_GET['house_number'] ?? ''; 
+
 // Fetch tenants for the page
-$tenants = $mysqli->query("SELECT tenant_id, full_name, house_number FROM tenants WHERE status='active' ORDER BY full_name ASC LIMIT $limit OFFSET $offset");
+$whereHouse = '';
+if ($selected_house) {
+    $houseEscaped = $mysqli->real_escape_string($selected_house);
+    $whereHouse = " AND house_number = '$houseEscaped'";
+}
+
+// --- Search by name ---
+$search_name = $_GET['search_name'] ?? '';
+$whereName = '';
+if ($search_name) {
+    $nameEscaped = $mysqli->real_escape_string($search_name);
+    $whereName = " AND full_name LIKE '%$nameEscaped%'";
+}
+
+$isDownload = isset($_GET['download_pdf']);
+if ($isDownload) {
+    $limitClause = "";
+} else {
+    $limitClause = "LIMIT $limit OFFSET $offset";
+}
+
+$tenants = $mysqli->query("
+    SELECT tenant_id, full_name, house_number 
+    FROM tenants 
+    WHERE status='active' $whereHouse $whereName 
+    ORDER BY CAST(SUBSTRING(house_number,4) AS UNSIGNED) ASC 
+    $limitClause
+");
+
 
 // Prepare array for per-tenant data
 $tenantData = [];
@@ -74,10 +106,20 @@ if (isset($_GET['download_pdf'])) {
     $pdf->Cell(0,10,'Monthly Rent Report ('.date('M Y', strtotime($from)).')',0,1,'C');
     $pdf->Ln(5);
 
+    // Apartment name and Date Printed
+$apartmentName = "NELLY PLAZA, MLOLONGO"; // <-- change to your real apartment name
+$pdf->SetFont('Arial','',12);
+$pdf->SetTextColor(0,0,0);
+$pdf->Cell(0,8,"Apartment: $apartmentName",0,1,'L');
+$pdf->Cell(0,8,"Date Printed: ".date('d M Y H:i'),0,1,'L');
+$pdf->Ln(5);
+
+
     // Table Header
     $pdf->SetFont('Arial','B',12);
     $pdf->SetFillColor(255,215,0); // Gold background
     $pdf->SetTextColor(0,0,0);      // Black text
+    $pdf->Cell(10,10,'#',1,0,'C',true);
     $pdf->Cell(50,10,'Tenant Name',1,0,'C',true);
     $pdf->Cell(30,10,'House No',1,0,'C',true);
     $pdf->Cell(40,10,'Amount Due',1,0,'C',true);
@@ -88,24 +130,39 @@ if (isset($_GET['download_pdf'])) {
     $pdf->SetFont('Arial','',12);
     $fill = false; // for alternating row color
 
-    foreach ($tenantData as $tenant) {
-        $tenant_id = $tenant['tenant_id'];
+  $totalDueSum = 0;
+$totalPaidSum = 0;
+$totalBalanceSum = 0;
 
-        $total_due = $tenant['total_due'];
-        $total_paid = $tenant['total_paid'];
-        $balance = $tenant['balance'];
+$counter = 1;
+foreach ($tenantData as $tenant) {
+    $total_due   = $tenant['total_due'];
+    $total_paid  = $tenant['total_paid'];
+    $balance     = $tenant['balance'];
 
-        $pdf->SetFillColor(230, 230, 250); // Light lavender for alternating row
-        $pdf->SetTextColor(0,0,0); // Black text
+    $totalDueSum += $total_due;
+    $totalPaidSum += $total_paid;
+    $totalBalanceSum += $balance;
 
-        $pdf->Cell(50,10,$tenant['full_name'],1,0,'L',$fill);
-        $pdf->Cell(30,10,$tenant['house_number'],1,0,'C',$fill);
-        $pdf->Cell(40,10,number_format($total_due,2),1,0,'R',$fill);
-        $pdf->Cell(40,10,number_format($total_paid,2),1,0,'R',$fill);
-        $pdf->Cell(30,10,number_format($balance,2),1,1,'R',$fill);
+    // Existing row drawing…
+    $pdf->Cell(10,10,$counter++,1,0,'C',$fill);
+    $pdf->Cell(50,10,$tenant['full_name'],1,0,'L',$fill);
+    $pdf->Cell(30,10,$tenant['house_number'],1,0,'C',$fill);
+    $pdf->Cell(40,10,number_format($total_due,2),1,0,'R',$fill);
+    $pdf->Cell(40,10,number_format($total_paid,2),1,0,'R',$fill);
+    $pdf->Cell(30,10,number_format($balance,2),1,1,'R',$fill);
 
-        $fill = !$fill; // toggle fill color
-    }
+    $fill = !$fill;
+}
+
+// After the loop, draw totals row:
+$pdf->SetFont('Arial','B',12);
+$pdf->Cell(90,10,'TOTALS',1,0,'R',true);
+$pdf->Cell(40,10,number_format($totalDueSum,2),1,0,'R',true);
+$pdf->Cell(40,10,number_format($totalPaidSum,2),1,0,'R',true);
+$pdf->Cell(30,10,number_format($totalBalanceSum,2),1,1,'R',true);
+
+
 
     $pdf->Output('D', 'monthly_report_'.date('Y_m', strtotime($from)).'.pdf');
     exit();
@@ -137,6 +194,18 @@ if (isset($_GET['download_pdf'])) {
 <div class="container">
 
 <h2>Monthly Report</h2>
+<form method="get" style="text-align:center; margin-bottom:10px;">
+    <input type="text" name="search_name" placeholder="Search tenant by name"
+           value="<?= htmlspecialchars($search_name) ?>"
+           style="padding:8px; width:250px; border-radius:5px; border:1px solid #ccc;">
+    <button type="submit" style="padding:8px 15px; background:gold; border:none; border-radius:5px; cursor:pointer;">
+        Search
+    </button>
+    <!-- preserve other filters when searching -->
+    <input type="hidden" name="from" value="<?= htmlspecialchars($from) ?>">
+    <input type="hidden" name="to" value="<?= htmlspecialchars($to) ?>">
+    <input type="hidden" name="filter" value="<?= htmlspecialchars($filter) ?>">
+</form>
 
 <form method="get" style="text-align:center; margin-bottom:15px;">
     <input type="date" name="from" value="<?= htmlspecialchars($from) ?>" required>
@@ -151,6 +220,7 @@ if (isset($_GET['download_pdf'])) {
 </form>
 <table>
     <tr>
+        <th>#</th>
         <th>Tenant</th>
         <th>House No</th>
         <th>Total Due</th>
@@ -158,8 +228,11 @@ if (isset($_GET['download_pdf'])) {
         <th>Balance</th>
         <th>Actions</th>
     </tr>
-   <?php foreach ($tenantData as $row) { ?>
+   <?php 
+$counter = ($page - 1) * $limit + 1; // ✅ continues numbering across pages
+foreach ($tenantData as $row) { ?>
 <tr>
+    <td><?= $counter++; ?></td> <!-- ✅ display row number -->
     <td><?= htmlspecialchars($row['full_name']) ?></td>
     <td><?= htmlspecialchars($row['house_number']) ?></td>
 

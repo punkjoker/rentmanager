@@ -16,10 +16,38 @@ if ($mysqli->connect_error) {
     die("Connection failed: " . $mysqli->connect_error);
 }
 
-// Sample queries using $mysqli
-$totalTenants = $mysqli->query("SELECT COUNT(*) AS total FROM tenants WHERE status='active'")->fetch_assoc()['total'];
-$rentCollected = $mysqli->query("SELECT SUM(amount_paid) AS total FROM payments WHERE MONTH(payment_date) = MONTH(CURDATE())")->fetch_assoc()['total'];
-$pendingPayments = $mysqli->query("SELECT COUNT(*) AS total FROM balances WHERE status != 'paid'")->fetch_assoc()['total'];
+$currentMonth = date('Y-m');
+
+// Total tenants
+$totalTenants = $mysqli->query("
+    SELECT COUNT(*) AS total 
+    FROM tenants 
+    WHERE status='active'
+")->fetch_assoc()['total'] ?? 0;
+
+// Total collected this month
+$totalCollected = $mysqli->query("
+    SELECT SUM(amount_paid) AS total 
+    FROM payments 
+    WHERE DATE_FORMAT(payment_date, '%Y-%m') = '$currentMonth'
+")->fetch_assoc()['total'] ?? 0;
+
+// Total water bill this month
+$totalWater = $mysqli->query("
+    SELECT SUM(water_bill) AS total 
+    FROM rent_charges 
+    WHERE month_year = '$currentMonth'
+")->fetch_assoc()['total'] ?? 0;
+
+// Total due this month
+$totalDue = $mysqli->query("
+    SELECT SUM(total_due) AS total 
+    FROM rent_charges 
+    WHERE month_year = '$currentMonth'
+")->fetch_assoc()['total'] ?? 0;
+
+// Total balances = total due - total collected
+$totalBalance = ($totalDue ?? 0) - ($totalCollected ?? 0);
 
 ?>
 
@@ -119,19 +147,27 @@ for ($i = 1; $i <= 12; $i++) {
         <div class="dashboard">
             <h1>Welcome, <?php echo $_SESSION['admin_name']; ?></h1>
             <div class="stats">
-                <div class="card">
-                    <h3>Total Tenants</h3>
-                    <p><?php echo $totalTenants; ?></p>
-                </div>
-                <div class="card">
-                    <h3>Rent Collected (This Month)</h3>
-                    <p>KES <?php echo number_format($rentCollected ?? 0); ?></p>
-                </div>
-                <div class="card">
-                    <h3>Pending Payments</h3>
-                    <p><?php echo $pendingPayments; ?></p>
-                </div>
-            </div>
+    <div class="card">
+        <h3>Total Tenants</h3>
+        <p><?php echo number_format($totalTenants); ?></p>
+    </div>
+
+    <div class="card">
+        <h3>Total Collected (This Month)</h3>
+        <p>KES <?php echo number_format($totalCollected, 2); ?></p>
+    </div>
+
+    <div class="card">
+        <h3>Total Water Bill (This Month)</h3>
+        <p>KES <?php echo number_format($totalWater, 2); ?></p>
+    </div>
+
+    <div class="card">
+        <h3>Total Balances (This Month)</h3>
+        <p>KES <?php echo number_format($totalBalance, 2); ?></p>
+    </div>
+</div>
+
             <div style="margin-top: 40px;">
     <h2 style="color: gold; text-align:center;">Monthly Income Analytics</h2>
     <div style="text-align:center; margin-bottom: 20px;">

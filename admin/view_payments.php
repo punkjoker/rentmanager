@@ -48,25 +48,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     // Manual payment form
-    elseif (isset($_POST['manual_tenant'], $_POST['manual_amount'], $_POST['manual_method'], $_POST['manual_house'])) {
-        $tenant_id = intval($_POST['manual_tenant']);
-        $amount = floatval($_POST['manual_amount']);
-        $method = $mysqli->real_escape_string($_POST['manual_method']);
-        $house_no = $mysqli->real_escape_string($_POST['manual_house']);
-        $transaction_code = "MANUAL-" . time();
+    // Manual payment form
+elseif (isset($_POST['manual_tenant'], $_POST['manual_amount'], $_POST['manual_method'])) {
+    $tenant_id = intval($_POST['manual_tenant']);
+    $amount = floatval($_POST['manual_amount']);
+    $method = $mysqli->real_escape_string($_POST['manual_method']);
+    $transaction_code = "MANUAL-" . time();
+    $manual_date = $_POST['manual_date'] ?? date('Y-m-d');
 
-        // Insert payment manually
-        $stmt = $mysqli->prepare("INSERT INTO payments (tenant_id, amount_paid, payment_method, transaction_code) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("idss", $tenant_id, $amount, $method, $transaction_code);
-        $stmt->execute();
+    $stmt = $mysqli->prepare("
+        INSERT INTO payments (tenant_id, amount_paid, payment_method, transaction_code, payment_date)
+        VALUES (?, ?, ?, ?, ?)
+    ");
+    $stmt->bind_param("idsss", $tenant_id, $amount, $method, $transaction_code, $manual_date);
+    $stmt->execute();
 
-        // Update rent charges
-        $update = $mysqli->prepare("UPDATE rent_charges SET is_paid = 1 WHERE tenant_id = ? AND is_paid = 0 AND total_due <= ?");
-        $update->bind_param("id", $tenant_id, $amount);
-        $update->execute();
+    // Update rent charges
+    $update = $mysqli->prepare("UPDATE rent_charges SET is_paid = 1 WHERE tenant_id = ? AND is_paid = 0 AND total_due <= ?");
+    $update->bind_param("id", $tenant_id, $amount);
+    $update->execute();
 
-        $message = "Manual payment recorded for tenant ID: $tenant_id.";
-    }
+    $message = "Manual payment recorded for tenant ID: $tenant_id.";
+}
+
+
 }
 
 // Fetch all payments to display
@@ -78,7 +83,24 @@ $payments = $mysqli->query("
 ");
 
 // Fetch tenants for dropdown in manual payment
-$tenants = $mysqli->query("SELECT tenant_id, full_name, house_number FROM tenants WHERE status='active' ORDER BY full_name ASC");
+// Example: building the WHERE and LIMIT clauses dynamically
+$whereHouse = ""; // example: "AND house_number LIKE 'HSE-%'"
+$limitClause = ""; // example: "LIMIT 0, 20"
+
+// Build the query
+$query = "
+    SELECT tenant_id, full_name, house_number
+    FROM tenants
+    WHERE status='active' $whereHouse
+    ORDER BY CAST(SUBSTRING(house_number, 4) AS UNSIGNED) ASC
+    $limitClause
+";
+
+// Execute the query
+$tenants = $mysqli->query($query);
+
+
+
 ?>
 
 <!DOCTYPE html>
@@ -131,8 +153,6 @@ $tenants = $mysqli->query("SELECT tenant_id, full_name, house_number FROM tenant
                 </option>
             <?php endwhile; ?>
         </select>
-        <label>House Number:</label>
-        <input type="text" name="manual_house" placeholder="Enter House No" required>
         <label>Amount Paid:</label>
         <input type="number" name="manual_amount" step="0.01" required>
         <label>Payment Method:</label>
@@ -142,6 +162,10 @@ $tenants = $mysqli->query("SELECT tenant_id, full_name, house_number FROM tenant
             <option value="bank">Bank Transfer</option>
             <option value="other">Other</option>
         </select>
+        <!-- New field: pick a date -->
+<label>Payment Date:</label>
+<input type="date" name="manual_date" required>
+
         <button type="submit">Add Manual Payment</button>
     </form>
 

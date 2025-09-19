@@ -120,7 +120,7 @@ $result = $mysqli->query("SELECT * FROM tenants WHERE status='active' ORDER BY h
             <h3>Add New Tenant</h3>
             <form method="post">
                 <input type="text" name="full_name" placeholder="Full Name" required>
-                <input type="text" name="national_id" placeholder="National ID" required>
+                <input type="text" name="national_id" placeholder="Date Of Entry" required>
                 <input type="text" name="phone_number" placeholder="Phone Number" required>
                 <input type="email" name="email" placeholder="Email">
                 <input type="text" name="house_number" placeholder="House Number" required>

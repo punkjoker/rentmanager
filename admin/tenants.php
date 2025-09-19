@@ -6,7 +6,12 @@ if (!isset($_SESSION['admin_id'])) {
 }
 $mysqli = new mysqli("localhost", "root", "", "rentmanager");
 
-$result = $mysqli->query("SELECT * FROM tenants WHERE status='active' ORDER BY house_number ASC");
+// ✅ Order by numeric part of house_number
+$result = $mysqli->query("
+    SELECT * FROM tenants 
+    WHERE status='active' 
+    ORDER BY CAST(SUBSTRING(house_number, 4) AS UNSIGNED) ASC
+");
 ?>
 
 <!DOCTYPE html>
@@ -24,11 +29,11 @@ $result = $mysqli->query("SELECT * FROM tenants WHERE status='active' ORDER BY h
         }
 
         .container {
-        display: flex;
-        gap: 20px;
-        margin-top: 30px;
-        margin-left: 220px; /* Add this to prevent overlap with left navbar */
-    }
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+            margin-left: 220px;
+        }
 
         .dashboard {
             background: rgba(0, 0, 0, 0.75);
@@ -83,7 +88,6 @@ $result = $mysqli->query("SELECT * FROM tenants WHERE status='active' ORDER BY h
             color: gold;
             text-decoration: underline;
         }
-
     </style>
 </head>
 <body>
@@ -93,28 +97,33 @@ $result = $mysqli->query("SELECT * FROM tenants WHERE status='active' ORDER BY h
             <h2>All Tenants</h2>
             <table>
                 <tr>
+                    <!-- ✅ New serial number column -->
+                    <th>#</th>
                     <th>Full Name</th>
-                    <th>National ID</th>
+                    <th>Date Of Entry</th>
                     <th>Phone</th>
                     <th>Email</th>
                     <th>House No</th>
                     <th>Edit</th>
                 </tr>
-                <?php while ($row = $result->fetch_assoc()): ?>
+                <?php 
+                $counter = 1; // ✅ start counter
+                while ($row = $result->fetch_assoc()): ?>
                 <tr>
+                    <td><?= $counter++; ?></td> <!-- ✅ display counter -->
                     <td><?= htmlspecialchars($row['full_name']) ?></td>
                     <td><?= htmlspecialchars($row['national_id']) ?></td>
                     <td><?= htmlspecialchars($row['phone_number']) ?></td>
                     <td><?= htmlspecialchars($row['email']) ?></td>
                     <td><?= htmlspecialchars($row['house_number']) ?></td>
-                   <td>
-    <a href="edit_tenant.php?id=<?= htmlspecialchars($row['tenant_id']) ?>" class="edit-btn">Edit</a>
-    <a href="vacate_tenant.php?id=<?= $row['tenant_id'] ?>" class="edit-btn" 
-       onclick="return confirm('Are you sure you want to vacate this tenant?');">
-       Vacate
-    </a>
-</td>
-
+                    <td>
+                        <a href="edit_tenant.php?id=<?= htmlspecialchars($row['tenant_id']) ?>" class="edit-btn">Edit</a>
+                        <a href="vacate_tenant.php?id=<?= $row['tenant_id'] ?>" class="edit-btn" 
+                           onclick="return confirm('Are you sure you want to vacate this tenant?');">
+                           Vacate
+                        </a>
+                    </td>
+                </tr>
                 <?php endwhile; ?>
             </table>
 

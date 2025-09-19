@@ -86,7 +86,7 @@ $result = $mysqli->query("SELECT * FROM vacated_tenants ORDER BY vacated_date DE
     <table>
         <tr>
             <th>Full Name</th>
-            <th>National ID</th>
+            <th>Date Of Entry</th>
             <th>Phone</th>
             <th>Email</th>
             <th>House No</th>

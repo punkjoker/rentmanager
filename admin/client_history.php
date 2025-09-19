@@ -4,7 +4,12 @@ $mysqli = new mysqli("localhost", "root", "", "rentmanager");
 $tenant_id = $_GET['tenant_id'] ?? 0;
 
 // Fetch tenant details
-$tenant = $mysqli->query("SELECT full_name FROM tenants WHERE tenant_id = $tenant_id")->fetch_assoc();
+$tenant = $mysqli->query("
+    SELECT full_name, house_number 
+    FROM tenants 
+    WHERE tenant_id = $tenant_id
+")->fetch_assoc();
+
 
 // Fetch rent charges
 $rentCharges = $mysqli->query("
@@ -37,79 +42,97 @@ $balance = $total_due - $total_paid;
 if (isset($_POST['download_history'])) {
     require('fpdf.php');
 
-    $pdf = new FPDF();
-    $pdf->AddPage();
-    $pdf->SetFont('Arial','B',16);
-    $pdf->Cell(0,10, $tenant['full_name'].' - Rent History',0,1,'C');
-    $pdf->Ln(5);
+$pdf = new FPDF();
+$pdf->AddPage();
 
-    // Summary
-    $pdf->SetFont('Arial','',12);
-    $pdf->Cell(0,10,"Total Due: ".number_format($total_due,2)." | Total Paid: ".number_format($total_paid,2)." | Balance: ".number_format($balance,2),0,1,'L');
-    $pdf->Ln(5);
+// Colors for title
+$pdf->SetTextColor(0, 51, 102); // dark blue
+$pdf->SetFont('Arial','B',14);
+$pdf->Cell(0,10,'NELLY PLAZA MLOLONGO',0,1,'C');
 
-    // Rent Charges Header
-    $pdf->SetFont('Arial','B',14);
-    $pdf->Cell(0,10,'Rent Charges',0,1);
-    $pdf->SetFont('Arial','B',12);
-    $pdf->Cell(60,10,'Month',1);
-    $pdf->Cell(60,10,'Amount Due',1);
-    $pdf->Cell(60,10,'Breakdown',1);
-    $pdf->Ln();
+$pdf->SetFont('Arial','',10);
+$pdf->SetTextColor(0); // black
+$pdf->Cell(0,10,'Date Printed: '.date('d M Y H:i'),0,1,'C');
+$pdf->Ln(5);
 
-    // Rent Charges Data
-    $pdf->SetFont('Arial','',12);
-    $rentCharges2 = $mysqli->query("
-        SELECT month_year, total_due, base_rent, water_bill, electricity_bill, garbage_bill
-        FROM rent_charges 
-        WHERE tenant_id = $tenant_id 
-        ORDER BY month_year DESC
-    ");
-    while ($row = $rentCharges2->fetch_assoc()) {
-        // Month
-        $pdf->Cell(60,10,date("F Y", strtotime($row['month_year'])),1);
+// Tenant header
+$pdf->SetFont('Arial','B',16);
+$pdf->SetFillColor(255, 215, 0); // gold fill
+$pdf->SetTextColor(0);           // black text
+$pdf->Cell(0,10,$tenant['full_name'].' - House '.$tenant['house_number'].' - Rent History',0,1,'C',true);
+$pdf->Ln(5);
 
-        // Amount Due
-        $pdf->Cell(60,10,number_format($row['total_due'],2),1);
+// After tenant header
+$pdf->Ln(3);
+$pdf->SetFont('Arial','B',12);
+$pdf->SetTextColor(0); // black text
 
-        // Breakdown using MultiCell
-        $breakdown = 
-            "Base: ".number_format($row['base_rent'],2)."\n".
-            "Water: ".number_format($row['water_bill'],2)."\n".
-            "Electricity: ".number_format($row['electricity_bill'],2)."\n".
-            "Garbage: ".number_format($row['garbage_bill'],2);
+$pdf->Cell(0,10,'Total Due: KES '.number_format($total_due,2).' | Total Paid: KES '.number_format($total_paid,2).' | Balance: KES '.number_format($balance,2),0,1,'C');
+$pdf->Ln(5);
 
-        // Save X,Y position
-        $x = $pdf->GetX();
-        $y = $pdf->GetY();
+/* ========== RENT CHARGES TABLE ========== */
+$pdf->SetFont('Arial','B',14);
+$pdf->SetTextColor(0,51,102);
+$pdf->Cell(0,10,'Rent Charges',0,1);
 
-        $pdf->MultiCell(60,5,$breakdown,1);
+$pdf->SetFont('Arial','B',12);
+$pdf->SetFillColor(255, 215, 0); // gold header
+$pdf->SetTextColor(0);           // black text
+$pdf->Cell(60,10,'Month',1,0,'C',true);
+$pdf->Cell(60,10,'Amount Due',1,0,'C',true);
+$pdf->Cell(60,10,'Breakdown',1,1,'C',true);
 
-        // Move cursor to next row properly
-        $pdf->SetXY($x + 60, $y);
-        $pdf->Ln(max(10, $pdf->GetY() - $y));
-    }
+// Data rows
+$pdf->SetFont('Arial','',11);
+$fill = false;
+while ($row = $rentCharges->fetch_assoc()) {
+    // Alternate row color
+    $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
+    $fill = !$fill;
 
-    // Payments Header
-    $pdf->Ln(5);
-    $pdf->SetFont('Arial','B',14);
-    $pdf->Cell(0,10,'Payment History',0,1);
-    $pdf->SetFont('Arial','B',12);
-    $pdf->Cell(60,10,'Date Paid',1);
-    $pdf->Cell(60,10,'Amount Paid',1);
-    $pdf->Ln();
+    $pdf->Cell(60,10,date("F Y", strtotime($row['month_year'])),1,0,'C',true);
+    $pdf->Cell(60,10,number_format($row['total_due'],2),1,0,'C',true);
 
-    // Payments Data
-    $pdf->SetFont('Arial','',12);
-    $payments2 = $mysqli->query("SELECT payment_date, amount_paid FROM payments WHERE tenant_id = $tenant_id ORDER BY payment_date DESC");
-    while ($row = $payments2->fetch_assoc()) {
-        $pdf->Cell(60,10,date("d M Y", strtotime($row['payment_date'])),1);
-        $pdf->Cell(60,10,number_format($row['amount_paid'],2),1);
-        $pdf->Ln();
-    }
+    // breakdown as string
+    $breakdown = 
+        "Base: ".number_format($row['base_rent'],2)."\n".
+        "Water: ".number_format($row['water_bill'],2)."\n".
+        "Other Charges: ".number_format($row['electricity_bill'],2)."\n".
+        "Garbage: ".number_format($row['garbage_bill'],2);
 
-    $pdf->Output('D', 'tenant_history_'.$tenant_id.'.pdf'); // Force download
-    exit();
+    $x = $pdf->GetX();
+    $y = $pdf->GetY();
+    $pdf->MultiCell(60,5,$breakdown,1,'L',$fill);
+    $pdf->SetXY($x + 60, $y);
+    $pdf->Ln(max(10, $pdf->GetY() - $y));
+}
+
+/* ========== PAYMENTS TABLE ========== */
+$pdf->Ln(5);
+$pdf->SetFont('Arial','B',14);
+$pdf->SetTextColor(0,51,102);
+$pdf->Cell(0,10,'Payment History',0,1);
+
+$pdf->SetFont('Arial','B',12);
+$pdf->SetFillColor(255, 215, 0);
+$pdf->SetTextColor(0);
+$pdf->Cell(60,10,'Date Paid',1,0,'C',true);
+$pdf->Cell(60,10,'Amount Paid',1,1,'C',true);
+
+// Data
+$pdf->SetFont('Arial','',11);
+$fill = false;
+while ($row = $payments->fetch_assoc()) {
+    $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
+    $fill = !$fill;
+
+    $pdf->Cell(60,10,date("d M Y", strtotime($row['payment_date'])),1,0,'C',true);
+    $pdf->Cell(60,10,number_format($row['amount_paid'],2),1,1,'C',true);
+}
+
+$pdf->Output('D', 'tenant_history_'.$tenant_id.'.pdf');
+exit();
+
 }
 
 ?>
